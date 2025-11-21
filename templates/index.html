@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="tr" class="h-full antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nexus Kurumsal Planlayıcı</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
+                        dark: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
+                    },
+                    boxShadow: {
+                        'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
+                        'neon': '0 0 20px rgba(99, 102, 241, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass-panel { @apply bg-white/80 dark:bg-dark-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 shadow-glass; }
+            .hide-scrollbar::-webkit-scrollbar { display: none; }
+            .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+            .custom-scrollbar::-webkit-scrollbar-track { @apply bg-transparent; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-700 rounded-full; }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-gray-600; }
+        }
+        
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Animasyonlar */
+        .slide-in-bottom { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .time-line { position: absolute; left: 0; right: 0; border-top: 2px solid #ef4444; z-index: 20; pointer-events: none; }
+        .time-line::before { content: ''; position: absolute; left: -6px; top: -6px; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); }
+            50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.1); }
+        }
+        
+        /* Swipe indicator */
+        .swipe-hint { animation: swipeHint 2s ease-in-out infinite; }
+        @keyframes swipeHint {
+            0%, 100% { transform: translateX(0); opacity: 1; }
+            50% { transform: translateX(-10px); opacity: 0.5; }
+        }
+        
+        /* Pull to refresh */
+        .pull-to-refresh { transition: transform 0.2s ease-out; }
+    </style>
+</head>
+<body class="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-dark-950 dark:to-dark-900 text-gray-900 dark:text-gray-100 transition-colors duration-500 overflow-hidden selection:bg-brand-500 selection:text-white"
+      x-data="plannerApp()" x-init="initApp()">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <div x-show="sidebarOpen" 
+             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+             x-transition.opacity
+             @click="sidebarOpen = false"></div>
+
+        <aside class="fixed inset-y-0 left-0 lg:static w-[280px] bg-white dark:bg-dark-900 border-r border-gray-200 dark:border-gray-800 flex flex-col z-50 transition-transform duration-300 shadow-2xl lg:shadow-none"
+               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
+            
+            <div class="h-20 flex items-center px-6 border-b border-gray-100 dark:border-gray-800/50 bg-gradient-to-r from-brand-50 to-white dark:from-dark-900 dark:to-dark-900">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white shadow-lg shadow-brand-500/30 relative overflow-hidden">
+                        <i class="ph-bold ph-planet text-xl relative z-10"></i>
+                        <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg tracking-tight">Nexus<span class="text-brand-600 dark:text-brand-400">Plan</span></h1>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">Kurumsal v2.0</p>
+                    </div>
+                </div>
+                <button @click="sidebarOpen = false" class="lg:hidden ml-auto text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <i class="ph-bold ph-x text-xl"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto py-6 px-4 space-y-8 custom-scrollbar">
+                <div class="space-y-1">
+                    <button @click="view = 'calendar'; sidebarOpen = false" 
+                            :class="view === 'calendar' ? 'bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/30 dark:to-brand-900/20 text-brand-700 dark:text-brand-300 shadow-sm ring-1 ring-brand-200 dark:ring-brand-800' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'" 
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all group">
+                        <i class="ph text-lg transition-transform group-hover:scale-110" :class="view === 'calendar' ? 'ph-calendar-check fill-current' : 'ph-calendar-blank'"></i> 
+                        Haftalık Plan
+                        <i class="ph-bold ph-caret-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity" x-show="view !== 'calendar'"></i>
+                    </button>
+                    <button @click="view = 'stats'; sidebarOpen = false" 
+                            :class="view === 'stats' ? 'bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/30 dark:to-brand-900/20 text-brand-700 dark:text-brand-300 shadow-sm ring-1 ring-brand-200 dark:ring-brand-800' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'" 
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all group">
+                        <i class="ph text-lg transition-transform group-hover:scale-110" :class="view === 'stats' ? 'ph-chart-pie-slice fill-current' : 'ph-chart-pie-slice'"></i>
+                        Verimlilik Raporu
+                        <i class="ph-bold ph-caret-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity" x-show="view !== 'stats'"></i>
+                    </button>
+                </div>
+
+                <div>
+                    <h3 class="px-2 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <i class="ph-fill ph-funnel"></i> Kategoriler
+                    </h3>
+                    <div class="space-y-1">
+                        <template x-for="cat in categories" :key="cat.name">
+                            <button @click="filterCategory = cat.name; sidebarOpen = false" 
+                                    class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all border border-transparent group"
+                                    :class="filterCategory === cat.name ? 'bg-white dark:bg-dark-800 shadow-sm border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/30'">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-2.5 h-2.5 rounded-full shadow-sm ring-1 ring-black/5 transition-transform group-hover:scale-110" :class="cat.color"></span>
+                                    <span x-text="cat.name === 'all' ? 'Tümü' : cat.name"></span>
+                                </div>
+                                <i class="ph-bold ph-check text-brand-600 dark:text-brand-400 transition-all" :class="filterCategory === cat.name ? 'scale-100' : 'scale-0'"></i>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Mobil Hızlı İstatistikler -->
+                <div class="lg:hidden space-y-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ph-fill ph-list-checks text-blue-500"></i>
+                            Toplam
+                        </span>
+                        <span class="font-bold text-gray-900 dark:text-white" x-text="stats.total"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ph-fill ph-check-circle text-emerald-500"></i>
+                            Tamamlanan
+                        </span>
+                        <span class="font-bold text-emerald-600" x-text="stats.completed"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ph-fill ph-hourglass text-amber-500"></i>
+                            Bekleyen
+                        </span>
+                        <span class="font-bold text-amber-600" x-text="stats.pending"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-gradient-to-r from-gray-50/50 to-white/50 dark:from-dark-950/30 dark:to-dark-900/30">
+                <div class="flex items-center gap-3 mb-4 px-2">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-400 to-brand-600 flex items-center justify-center border-2 border-white dark:border-gray-700 shadow-lg relative overflow-hidden">
+                        <span class="font-bold text-lg text-white uppercase relative z-10" x-text="currentUser.charAt(0)"></span>
+                        <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-gray-900 dark:text-white truncate" x-text="currentUser"></p>
+                        <a href="/logout" class="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1 transition-colors">
+                            Çıkış Yap <i class="ph-bold ph-sign-out"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <button @click="openModal(); sidebarOpen = false" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white px-4 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-brand-600/30 transition-all active:scale-[0.98] hover:-translate-y-0.5 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <i class="ph-bold ph-plus relative z-10"></i>
+                    <span class="relative z-10">Yeni Görev</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col h-full relative overflow-hidden">
+            
+            <header class="h-16 md:h-20 px-4 md:px-6 glass-panel z-30 flex items-center justify-between sticky top-0 transition-all">
+                <div class="flex items-center gap-3 md:gap-4">
+                    <button @click="sidebarOpen = true" class="lg:hidden p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 rounded-xl transition-colors active:scale-95">
+                        <i class="ph ph-list text-2xl"></i>
+                    </button>
+                    
+                    <div>
+                        <h2 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
+                            <span x-text="view === 'calendar' ? 'Haftalık Plan' : 'Verimlilik'"></span>
+                            <span class="hidden md:inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300 border border-brand-200 dark:border-brand-800 animate-pulse">LIVE</span>
+                        </h2>
+                        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium" x-text="currentDateStr"></p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 md:gap-3">
+                    <div class="relative hidden md:block group">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ph ph-magnifying-glass text-gray-400 group-focus-within:text-brand-500 transition-colors"></i>
+                        </div>
+                        <input type="text" x-model="searchQuery" placeholder="Görev ara..." 
+                               class="pl-10 pr-4 py-2 w-64 bg-gray-100 dark:bg-dark-800/50 border-transparent focus:bg-white dark:focus:bg-dark-900 border focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 rounded-xl text-sm transition-all outline-none">
+                    </div>
+
+                    <div class="flex items-center gap-1.5 md:gap-2 bg-gray-100/50 dark:bg-dark-800/50 p-1 rounded-xl border border-gray-200/50 dark:border-gray-700/50">
+                        <button @click="toggleDarkMode()" class="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-dark-700 text-gray-500 dark:text-gray-400 transition-all shadow-sm active:scale-95">
+                            <i class="ph-fill text-base md:text-lg transition-transform hover:scale-110" :class="darkMode ? 'ph-sun' : 'ph-moon'"></i>
+                        </button>
+                        <div class="w-px h-4 bg-gray-300 dark:bg-gray-700"></div>
+                        <button @click="showEmptyRows = !showEmptyRows" 
+                                class="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-lg transition-all shadow-sm active:scale-95"
+                                :class="showEmptyRows ? 'hover:bg-white dark:hover:bg-dark-700 text-gray-500 dark:text-gray-400' : 'bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400'"
+                                :title="showEmptyRows ? 'Boşlukları Gizle' : 'Tüm Saatleri Göster'">
+                            <i class="ph-bold text-base md:text-lg transition-transform hover:scale-110" :class="showEmptyRows ? 'ph-funnel' : 'ph-funnel-simple'"></i>
+                        </button>
+                        <div class="w-px h-4 bg-gray-300 dark:bg-gray-700 hidden md:block"></div>
+                        <a href="/api/export" class="hidden md:flex w-9 h-9 items-center justify-center rounded-lg hover:bg-white dark:hover:bg-dark-700 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-500 transition-all shadow-sm active:scale-95" title="Excel İndir">
+                            <i class="ph-fill ph-microsoft-excel-logo text-lg transition-transform hover:scale-110"></i>
+                        </a>
+                    </div>
+                    
+                    <button @click="autoGenerate()" class="hidden md:flex w-9 h-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600 hover:bg-brand-100 border border-brand-200 transition-all active:scale-95" title="Otomatik Doldur">
+                         <i class="ph-bold ph-magic-wand transition-transform hover:scale-110"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-hidden relative">
+                
+                <!-- Mobil Gün Geçiş Navigasyonu - İyileştirilmiş -->
+                <div class="md:hidden sticky top-0 z-20 bg-white dark:bg-dark-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div class="flex items-center justify-between px-4 py-3">
+                        <button @click="prevDay()" 
+                                class="p-2.5 rounded-xl transition-all active:scale-95"
+                                :class="currentDayIndex === 0 ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'"
+                                :disabled="currentDayIndex === 0">
+                            <i class="ph-bold ph-caret-left text-xl"></i>
+                        </button>
+                        
+                        <div class="text-center flex-1">
+                            <p class="text-sm font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2" x-text="getCurrentDayName()">
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium" x-text="getCurrentDayDate()"></p>
+                        </div>
+                        
+                        <button @click="nextDay()" 
+                                class="p-2.5 rounded-xl transition-all active:scale-95"
+                                :class="currentDayIndex === days.length - 1 ? 'text-gray-300 dark:text-gray-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'"
+                                :disabled="currentDayIndex === days.length - 1">
+                            <i class="ph-bold ph-caret-right text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Gün Göstergeleri - İyileştirilmiş -->
+                    <div class="flex justify-center gap-2 pb-3 px-4">
+                        <template x-for="(day, idx) in days" :key="day">
+                            <button @click="currentDayIndex = idx" 
+                                    class="relative transition-all active:scale-95"
+                                    :class="currentDayIndex === idx ? 'w-8' : 'w-2'">
+                                <div class="h-2 rounded-full transition-all"
+                                     :class="currentDayIndex === idx ? 'bg-gradient-to-r from-brand-500 to-brand-600 shadow-lg shadow-brand-500/30' : 'bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600'"></div>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                
+                <div x-show="view === 'calendar'" 
+                     class="h-full overflow-auto custom-scrollbar p-3 md:p-4 lg:p-6 calendar-area"
+                     x-transition:enter="transition ease-out duration-300" 
+                     x-transition:enter-start="opacity-0 translate-y-4" 
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     @touchstart="handleTouchStart($event)"
+                     @touchmove="handleTouchMove($event)"
+                     @touchend="handleTouchEnd($event)">
+                    
+                    <div class="bg-white dark:bg-dark-900 rounded-2xl shadow-xl border border-gray-200/60 dark:border-gray-800 w-full overflow-x-auto">
+                        <table class="w-full border-collapse table-fixed" style="min-width: 800px;">
+                            <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-dark-900 dark:to-dark-800 backdrop-blur sticky top-0 z-20 shadow-sm">
+                                <tr>
+                                    <th class="w-14 md:w-20 py-3 md:py-4 border-b border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-dark-900 z-30 sticky left-0">
+                                        <span class="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">Saat</span>
+                                    </th>
+                                    
+                                    {% for day in week_meta %}
+                                    <th class="py-3 border-b border-r border-gray-100 dark:border-gray-800 min-w-[140px] last:border-r-0 relative overflow-hidden group"
+                                        :class="{'hidden md:table-cell': isMobile && !isCurrentMobileDay({{ loop.index0 }})}">
+                                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-brand-600 transform -translate-y-full transition-transform duration-300 {{ 'translate-y-0' if day.is_today else 'group-hover:translate-y-0' }}"></div>
+                                        <div class="flex flex-col items-center gap-1 relative z-10">
+                                            <span class="text-xs font-bold {{ 'text-brand-600 dark:text-brand-400' if day.is_today else 'text-gray-500 dark:text-gray-400' }} uppercase tracking-widest">{{ day.day_tr }}</span>
+                                            <div class="w-9 h-9 flex items-center justify-center rounded-full text-sm font-bold transition-all duration-300 {{ 'bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-lg shadow-brand-500/40 scale-110' if day.is_today else 'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-dark-800 hover:bg-gray-200 dark:hover:bg-dark-700' }}">
+                                                {{ day.date.split('.')[0] }}
+                                            </div>
+                                        </div>
+                                    </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            
+                            <tbody class="relative bg-white dark:bg-dark-900">
+                                <div class="time-line" :style="`top: ${timeIndicatorPos}px`" x-show="timeIndicatorPos > 0 && isTodayVisible()"></div>
+
+                                <template x-for="(hour, hIndex) in visibleHours" :key="hour">
+                                    <tr class="group hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors fade-in">
+                                        <td class="py-2 text-[10px] md:text-xs font-bold text-gray-400 text-center border-b border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-dark-900 sticky left-0 z-10">
+                                            <span x-text="hour"></span>
+                                        </td>
+                                        
+                                        <template x-for="(day, dayIdx) in days" :key="day">
+                                            <td class="border-b border-r border-gray-100 dark:border-gray-800 p-1.5 md:p-2 relative h-28 md:h-32 align-top last:border-r-0 group/cell transition-all"
+                                                :class="{'hidden md:table-cell': isMobile && !isCurrentMobileDay(dayIdx)}"
+                                                @dragover.prevent="dragOver($event)" 
+                                                @drop="dropTask($event, day, hour)" 
+                                                @click.self="openModal(day, hour)">
+                                                
+                                                <button @click="openModal(day, hour)" 
+                                                        class="absolute inset-0 w-full h-full flex items-center justify-center opacity-0 group-hover/cell:opacity-100 z-0 transition-all duration-200 hover:bg-gradient-to-br hover:from-brand-50/50 hover:to-brand-100/50 dark:hover:from-brand-900/10 dark:hover:to-brand-800/10 cursor-pointer">
+                                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-900/50 dark:to-brand-800/50 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm transform scale-75 group-hover/cell:scale-100 transition-transform border border-brand-200/50 dark:border-brand-700/50">
+                                                        <i class="ph-bold ph-plus"></i>
+                                                    </div>
+                                                </button>
+
+                                                <div class="space-y-1.5 md:space-y-2 relative z-10 pointer-events-none h-full">
+                                                    <template x-for="task in getFilteredTasks(day, hour)" :key="task._id">
+                                                        <div draggable="true" @dragstart="dragStart($event, task)"
+                                                             class="pointer-events-auto slide-in-bottom group/card relative p-2.5 md:p-3 rounded-xl border transition-all duration-300 cursor-grab active:cursor-grabbing overflow-hidden"
+                                                             :class="{
+                                                                'bg-white dark:bg-dark-800 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg hover:-translate-y-1 hover:scale-[1.02]': !task.completed,
+                                                                'bg-gray-50 dark:bg-dark-800/40 border-transparent opacity-60': task.completed
+                                                             }">
+                                                            
+                                                            <div class="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" 
+                                                                 :class="{
+                                                                    'bg-gradient-to-b from-red-500 to-red-600': task.priority === 'high',
+                                                                    'bg-gradient-to-b from-amber-400 to-amber-500': task.priority === 'medium',
+                                                                    'bg-gradient-to-b from-blue-400 to-blue-500': task.priority === 'normal'
+                                                                 }"></div>
+
+                                                            <div class="pl-2 flex items-start gap-2">
+                                                                <button @click.stop="toggleComplete(task)" 
+                                                                        class="mt-0.5 shrink-0 w-4 h-4 rounded border-2 transition-all flex items-center justify-center hover:scale-110 active:scale-95"
+                                                                        :class="task.completed ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-500/30' : 'border-gray-300 dark:border-gray-600 hover:border-emerald-400 bg-transparent'">
+                                                                    <i class="ph-bold ph-check text-[10px]" x-show="task.completed"></i>
+                                                                </button>
+
+                                                                <div class="flex-1 min-w-0 cursor-pointer" @click.stop="openModal(day, hour, task)">
+                                                                    <p class="text-[11px] md:text-xs font-semibold leading-tight truncate mb-1"
+                                                                       :class="task.completed ? 'text-gray-400 line-through decoration-gray-300' : 'text-gray-800 dark:text-gray-200'"
+                                                                       x-text="task.title"></p>
+                                                                    <div class="flex items-center gap-1">
+                                                                        <span class="text-[8px] md:text-[9px] font-bold px-1.5 py-0.5 rounded bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-600 dark:text-gray-400 uppercase tracking-wide" x-text="task.category"></span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity bg-white/90 dark:bg-dark-800/90 backdrop-blur rounded-lg p-0.5 shadow-lg border border-gray-200 dark:border-gray-700">
+                                                                <button @click.stop="openSnoozeModal(task)" class="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-900/30 text-gray-400 hover:text-amber-500 rounded transition-all active:scale-95" title="Ertele">
+                                                                    <i class="ph-bold ph-clock text-xs"></i>
+                                                                </button>
+                                                                <button @click.stop="openModal(day, hour, task)" class="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-400 hover:text-blue-500 rounded transition-all active:scale-95" title="Düzenle">
+                                                                    <i class="ph-bold ph-pencil-simple text-xs"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </td>
+                                        </template>
+                                    </tr>
+                                </template>
+                                
+                                <tr x-show="visibleHours.length === 0">
+                                    <td :colspan="isMobile ? 2 : 8" class="py-24 text-center">
+                                        <div class="flex flex-col items-center justify-center opacity-60">
+                                            <div class="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-dark-800 dark:to-dark-700 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                                                <i class="ph-duotone ph-coffee text-4xl text-gray-400"></i>
+                                            </div>
+                                            <p class="text-gray-600 dark:text-gray-300 font-medium mb-1">Şu an görüntülenecek görev yok.</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Yeni görev ekleyerek başlayın</p>
+                                            <button @click="showEmptyRows=true" class="px-4 py-2 bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-sm font-bold rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors">
+                                                Tüm zaman dilimlerini göster
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div x-show="view === 'stats'" class="h-full overflow-auto p-4 md:p-6 lg:p-10 custom-scrollbar" style="display: none;">
+                    <div class="max-w-5xl mx-auto">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+                            <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl text-white shadow-xl shadow-blue-500/30 relative overflow-hidden">
+                                <div class="relative z-10">
+                                    <p class="text-blue-100 text-xs font-bold uppercase tracking-wider mb-2">Toplam Görev</p>
+                                    <h3 class="text-4xl font-bold" x-text="stats.total"></h3>
+                                </div>
+                                <i class="ph-duotone ph-list-checks absolute -right-4 -bottom-4 text-[120px] text-white opacity-20"></i>
+                            </div>
+                            <div class="bg-white dark:bg-dark-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xl relative overflow-hidden group">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Tamamlanan</p>
+                                        <h3 class="text-3xl font-bold text-emerald-500" x-text="stats.completed"></h3>
+                                    </div>
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/10 flex items-center justify-center text-emerald-500">
+                                        <i class="ph-bold ph-check"></i>
+                                    </div>
+                                </div>
+                                <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full rounded-full transition-all duration-1000" :style="`width: ${stats.total > 0 ? (stats.completed / stats.total) * 100 : 0}%`"></div>
+                                </div>
+                            </div>
+                             <div class="bg-white dark:bg-dark-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xl relative overflow-hidden group">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Bekleyen</p>
+                                        <h3 class="text-3xl font-bold text-amber-500" x-text="stats.pending"></h3>
+                                    </div>
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/10 flex items-center justify-center text-amber-500">
+                                        <i class="ph-bold ph-hourglass"></i>
+                                    </div>
+                                </div>
+                                <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-gradient-to-r from-amber-400 to-amber-600 h-full rounded-full transition-all duration-1000" :style="`width: ${stats.total > 0 ? (stats.pending / stats.total) * 100 : 0}%`"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-dark-800 p-6 md:p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700">
+                            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                                <span class="w-1 h-6 bg-gradient-to-b from-brand-500 to-brand-600 rounded-full"></span>
+                                Kategori Dağılımı
+                            </h3>
+                            <div class="space-y-6">
+                                <template x-for="(count, cat) in stats.categories" :key="cat">
+                                    <div class="group">
+                                        <div class="flex justify-between text-sm mb-2">
+                                            <span class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                                <i class="ph-fill ph-tag text-gray-400"></i> <span x-text="cat"></span>
+                                            </span>
+                                            <span class="font-mono text-gray-500 group-hover:text-brand-600 transition-colors" x-text="count"></span>
+                                        </div>
+                                        <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                                            <div class="bg-gradient-to-r from-brand-400 to-brand-600 h-full rounded-full relative overflow-hidden transition-all duration-1000" :style="`width: ${stats.total > 0 ? (count / stats.total) * 100 : 0}%`">
+                                                <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobil FAB Butonu - İyileştirilmiş -->
+            <div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+                <button @click="showEmptyRows = !showEmptyRows" 
+                        class="md:hidden w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 relative overflow-hidden group"
+                        :class="showEmptyRows ? 'bg-white dark:bg-dark-800 text-gray-600 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700' : 'bg-gradient-to-br from-brand-600 to-brand-700 text-white shadow-brand-600/50'"
+                        :title="showEmptyRows ? 'Boşlukları Gizle' : 'Tüm Saatleri Göster'">
+                    <div class="absolute inset-0 bg-white/10 translate-y-full group-active:translate-y-0 transition-transform"></div>
+                    <i class="ph-bold text-xl relative z-10 transition-transform group-hover:scale-110" :class="showEmptyRows ? 'ph-funnel' : 'ph-funnel-simple'"></i>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Rest of the modals remain the same... -->
+    <!-- Modal -->
+    <div x-show="modalOpen" class="fixed inset-0 z-[60] flex items-center justify-center px-4" style="display: none;">
+        <div class="absolute inset-0 bg-gray-900/70 backdrop-blur-md transition-opacity" @click="closeModal()"></div>
+        <div class="bg-white dark:bg-dark-900 w-full max-w-md rounded-3xl shadow-2xl z-10 overflow-hidden transform transition-all scale-100 border border-gray-100 dark:border-gray-700"
+             x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-8 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100">
+            
+            <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white dark:from-dark-950/50 dark:to-dark-900/50">
+                <h3 class="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2">
+                    <i class="ph-duotone" :class="editingTask ? 'ph-pencil-simple' : 'ph-sparkle'"></i>
+                    <span x-text="editingTask ? 'Görevi Düzenle' : 'Yeni Görev Oluştur'"></span>
+                </h3>
+                <button @click="closeModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 transition-all active:scale-95">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div class="flex gap-3">
+                     <div class="flex-1 space-y-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Gün</label>
+                        <div class="relative">
+                            <select x-model="formData.day" class="w-full bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none appearance-none transition-all">
+                                <template x-for="day in days" :key="day">
+                                    <option :value="day" x-text="day"></option>
+                                </template>
+                            </select>
+                            <i class="ph-bold ph-caret-down absolute right-3 top-3 text-gray-400 pointer-events-none text-xs"></i>
+                        </div>
+                    </div>
+                    <div class="w-1/3 space-y-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Saat</label>
+                        <div class="relative">
+                            <select x-model="formData.hour" class="w-full bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none appearance-none transition-all">
+                                <template x-for="h in hours" :key="h">
+                                    <option :value="h" x-text="h"></option>
+                                </template>
+                            </select>
+                            <i class="ph-bold ph-caret-down absolute right-3 top-3 text-gray-400 pointer-events-none text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Başlık</label>
+                    <input type="text" x-model="formData.title" placeholder="Örn: Q3 Satış Raporu" class="w-full bg-white dark:bg-dark-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none placeholder:text-gray-400 transition-all shadow-sm focus:shadow-lg">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Notlar</label>
+                    <textarea x-model="formData.desc" rows="3" class="w-full bg-white dark:bg-dark-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none resize-none placeholder:text-gray-400 shadow-sm transition-all"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                     <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Öncelik</label>
+                        <div class="flex gap-2">
+                            <template x-for="p in ['high', 'medium', 'normal']" :key="p">
+                                <button @click="formData.priority = p" 
+                                        type="button"
+                                        class="flex-1 py-2 rounded-lg border-2 transition-all text-xs font-bold uppercase active:scale-95"
+                                        :class="{
+                                            'border-red-500 bg-red-50 text-red-600 shadow-md shadow-red-500/20': formData.priority === 'high' && p === 'high',
+                                            'border-amber-500 bg-amber-50 text-amber-600 shadow-md shadow-amber-500/20': formData.priority === 'medium' && p === 'medium',
+                                            'border-blue-500 bg-blue-50 text-blue-600 shadow-md shadow-blue-500/20': formData.priority === 'normal' && p === 'normal',
+                                            'border-gray-100 dark:border-gray-700 text-gray-400 hover:border-gray-300': formData.priority !== p
+                                        }">
+                                    <div class="w-2 h-2 rounded-full mx-auto mb-1" :class="{'bg-red-500': p==='high', 'bg-amber-500': p==='medium', 'bg-blue-500': p==='normal'}"></div>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kategori</label>
+                         <div class="relative">
+                            <select x-model="formData.category" class="w-full bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none appearance-none transition-all">
+                                <option>Genel</option>
+                                <option>İş</option>
+                                <option>Kişisel</option>
+                                <option>Yönetim</option>
+                                <option>Satış</option>
+                            </select>
+                             <i class="ph-bold ph-caret-down absolute right-3 top-3 text-gray-400 pointer-events-none text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-5 border-t border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50/80 to-white/80 dark:from-dark-900/80 dark:to-dark-800/80 flex gap-3">
+                <button @click="if(editingTask) deleteTask(editingTask._id)" x-show="editingTask" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 active:scale-95">
+                    <i class="ph-bold ph-trash"></i> Sil
+                </button>
+                <div class="flex-1"></div>
+                <button @click="closeModal()" class="px-5 py-2.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-bold text-sm transition-colors">İptal</button>
+                <button @click="saveTask()" class="px-6 py-2.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-500/30 transition-all active:scale-95 flex items-center gap-2 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <i class="ph-bold ph-check relative z-10"></i>
+                    <span class="relative z-10">Kaydet</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Snooze Modal -->
+    <div x-show="snoozeModalOpen" class="fixed inset-0 z-[70] flex items-center justify-center px-4" style="display: none;">
+        <div class="absolute inset-0 bg-gray-900/70 backdrop-blur-md transition-opacity" @click="snoozeModalOpen = false"></div>
+        <div class="bg-white dark:bg-dark-900 w-full max-w-sm rounded-3xl shadow-2xl z-10 p-6 border border-gray-100 dark:border-gray-700 scale-100 transform transition-all"
+             x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100">
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 mx-auto bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/20 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-amber-500/20">
+                    <i class="ph-fill ph-clock-countdown text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Erteleme Süresi</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Zincirleme erteleme ile çakışmaları önler</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <template x-for="m in [15, 30, 60, 1440]">
+                    <button @click="snoozeMinutes = m" 
+                            class="py-3 rounded-xl text-sm font-bold border-2 transition-all active:scale-95" 
+                            :class="snoozeMinutes === m ? 'bg-gradient-to-br from-amber-500 to-amber-600 border-amber-500 text-white shadow-lg shadow-amber-500/30' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'">
+                        <span x-text="m === 1440 ? 'Yarına' : m + ' dk'"></span>
+                    </button>
+                </template>
+            </div>
+            <button @click="confirmSnooze()" class="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg shadow-amber-500/30 transition-all active:scale-95 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                <span class="relative z-10">Onayla ve Ertele</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function plannerApp() {
+            return {
+                currentUser: '{{ user }}',
+                sidebarOpen: false,
+                darkMode: localStorage.getItem('theme') === 'dark',
+                view: 'calendar',
+                searchQuery: '',
+                filterCategory: 'all',
+                showEmptyRows: false,
+                modalOpen: false,
+                snoozeModalOpen: false,
+                taskToSnooze: null,
+                snoozeMinutes: 30,
+                days: {{ days | tojson }},
+                hours: {{ hours | tojson }},
+                tasks: {},
+                editingTask: null,
+                formData: { day: 'Monday', hour: '09:00', title: '', desc: '', priority: 'normal', category: 'Genel' },
+                draggedTask: null,
+                categories: [
+                    { name: 'all', color: 'bg-gray-400' }, 
+                    { name: 'İş', color: 'bg-blue-500' }, 
+                    { name: 'Kişisel', color: 'bg-green-500' }, 
+                    { name: 'Yönetim', color: 'bg-purple-500' }, 
+                    { name: 'Satış', color: 'bg-amber-500' }, 
+                    { name: 'Genel', color: 'bg-gray-500' }
+                ],
+                
+                currentDayIndex: 0,
+                touchStartX: 0,
+                touchEndX: 0,
+                
+                get currentDateStr() { 
+                    return new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }); 
+                },
+                
+                get timeIndicatorPos() { 
+                    const now = new Date(); 
+                    const minutes = (now.getHours() * 60) + now.getMinutes(); 
+                    return (minutes / 1440) * (24 * 128) + 56;
+                },
+                
+                get isMobile() {
+                    return window.innerWidth < 768;
+                },
+                
+                getTodayDayIndex() {
+                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const today = new Date().getDay();
+                    return this.days.indexOf(dayNames[today]);
+                },
+                
+                isCurrentMobileDay(dayIdx) {
+                    // Sadece mobilde filtreleme yap
+                    if (!this.isMobile) return true;
+                    return dayIdx === this.currentDayIndex;
+                },
+                
+                isTodayVisible() {
+                    if (!this.isMobile) return true;
+                    const todayIndex = this.getTodayDayIndex();
+                    return this.currentDayIndex === todayIndex;
+                },
+                
+                getCurrentDayName() {
+                    const dayNamesTr = {
+                        'Monday': 'Pazartesi',
+                        'Tuesday': 'Salı', 
+                        'Wednesday': 'Çarşamba',
+                        'Thursday': 'Perşembe',
+                        'Friday': 'Cuma',
+                        'Saturday': 'Cumartesi',
+                        'Sunday': 'Pazar'
+                    };
+                    return dayNamesTr[this.days[this.currentDayIndex]] || this.days[this.currentDayIndex];
+                },
+                
+                getCurrentDayDate() {
+                    const today = new Date();
+                    const diff = this.currentDayIndex - this.getTodayDayIndex();
+                    const targetDate = new Date(today);
+                    targetDate.setDate(today.getDate() + diff);
+                    return targetDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+                },
+                
+                prevDay() {
+                    if (this.currentDayIndex > 0) {
+                        this.currentDayIndex--;
+                    }
+                },
+                
+                nextDay() {
+                    if (this.currentDayIndex < this.days.length - 1) {
+                        this.currentDayIndex++;
+                    }
+                },
+                
+                handleTouchStart(e) {
+                    if (!this.isMobile) return;
+                    this.touchStartX = e.changedTouches[0].screenX;
+                },
+                
+                handleTouchMove(e) {
+                    if (!this.isMobile) return;
+                    this.touchEndX = e.changedTouches[0].screenX;
+                },
+                
+                handleTouchEnd(e) {
+                    if (!this.isMobile) return;
+                    const swipeThreshold = 50;
+                    const diff = this.touchStartX - this.touchEndX;
+                    
+                    if (Math.abs(diff) > swipeThreshold) {
+                        if (diff > 0) {
+                            this.nextDay();
+                        } else {
+                            this.prevDay();
+                        }
+                    }
+                },
+                
+                // Script bölümündeki visibleHours fonksiyonunu değiştir:
+
+get visibleHours() {
+    if (this.showEmptyRows) {
+        return this.hours;
+    }
+    
+    let activeHours = new Set();
+    
+    if (this.isMobile) {
+        // Mobilde sadece seçili günü kontrol et
+        const currentDay = this.days[this.currentDayIndex];
+        if (this.tasks[currentDay]) {
+            Object.keys(this.tasks[currentDay]).forEach(hour => {
+                const tasksInSlot = this.getFilteredTasks(currentDay, hour);
+                if (tasksInSlot && tasksInSlot.length > 0) {
+                    activeHours.add(hour);
+                }
+            });
+        }
+    } else {
+        // Desktop'ta tüm günleri kontrol et
+        Object.keys(this.tasks).forEach(day => {
+            if (this.tasks[day]) {
+                Object.keys(this.tasks[day]).forEach(hour => {
+                    const tasksInSlot = this.getFilteredTasks(day, hour);
+                    if (tasksInSlot && tasksInSlot.length > 0) {
+                        activeHours.add(hour);
+                    }
+                });
+            }
+        });
+    }
+    
+    return [...activeHours].sort();
+},
+                get stats() {
+                    let total = 0, completed = 0;
+                    let catCounts = {};
+                    Object.values(this.tasks).forEach(d => Object.values(d).forEach(l => l.forEach(t => { 
+                        total++; 
+                        if(t.completed) completed++; 
+                        catCounts[t.category] = (catCounts[t.category] || 0) + 1; 
+                    })));
+                    return { total, completed, pending: total - completed, categories: catCounts };
+                },
+
+                initApp() { 
+                    this.applyTheme();
+                    this.currentDayIndex = this.getTodayDayIndex() >= 0 ? this.getTodayDayIndex() : 0;
+                    this.fetchTasks(); 
+                    setInterval(() => { this.$forceUpdate(); }, 60000); 
+                },
+                
+                toggleDarkMode() { 
+                    this.darkMode = !this.darkMode; 
+                    localStorage.setItem('theme', this.darkMode ? 'dark' : 'light'); 
+                    this.applyTheme(); 
+                },
+                
+                applyTheme() { 
+                    document.documentElement.classList.toggle('dark', this.darkMode); 
+                },
+
+                async fetchTasks() { 
+                    const res = await fetch('/api/tasks'); 
+                    const json = await res.json(); 
+                    if(json.success) this.tasks = json.data; 
+                },
+                
+                getTasks(day, hour) { 
+                    return (this.tasks[day] && this.tasks[day][hour]) ? this.tasks[day][hour] : []; 
+                },
+                
+                getFilteredTasks(day, hour) { 
+                    return this.getFilteredTasksForCheck(this.getTasks(day, hour)); 
+                },
+                
+                getFilteredTasksForCheck(list) {
+                    if (!list) return [];
+                    let res = list;
+                    if (this.filterCategory !== 'all') res = res.filter(t => t.category === this.filterCategory);
+                    if (this.searchQuery) { 
+                        const q = this.searchQuery.toLowerCase(); 
+                        res = res.filter(t => t.title.toLowerCase().includes(q)); 
+                    }
+                    return res;
+                },
+
+                openModal(day = null, hour = '09:00', task = null) {
+                    if (!day && this.isMobile) {
+                        day = this.days[this.currentDayIndex];
+                    } else if (!day) {
+                        day = 'Monday';
+                    }
+                    
+                    this.editingTask = task;
+                    this.formData = task ? { ...task } : { day, hour, title: '', desc: '', priority: 'normal', category: 'Genel' };
+                    this.modalOpen = true;
+                },
+                
+                closeModal() { 
+                    this.modalOpen = false; 
+                    this.editingTask = null; 
+                },
+                
+                async saveTask() { 
+                    if (!this.formData.title.trim()) return; 
+                    const url = this.editingTask ? `/api/tasks/${this.editingTask._id}` : '/api/tasks'; 
+                    const method = this.editingTask ? 'PUT' : 'POST'; 
+                    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.formData) }); 
+                    this.closeModal(); 
+                    this.fetchTasks(); 
+                },
+                
+                async deleteTask(id) { 
+                    if(!confirm('Bu görevi silmek istediğinize emin misiniz?')) return; 
+                    await fetch(`/api/tasks/${id}`, { method: 'DELETE' }); 
+                    this.closeModal(); 
+                    this.fetchTasks(); 
+                },
+                
+                async toggleComplete(task) { 
+                    await fetch(`/api/tasks/${task._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: !task.completed }) }); 
+                    this.fetchTasks(); 
+                },
+                
+                dragStart(event, task) { 
+                    this.draggedTask = task; 
+                    event.dataTransfer.effectAllowed = 'move'; 
+                    event.target.style.opacity = 0.4; 
+                },
+                
+                dragOver(event) { 
+                    event.preventDefault(); 
+                    return false; 
+                },
+                
+                async dropTask(event, newDay, newHour) { 
+                    event.target.style.opacity = 1;
+                    if (!this.draggedTask || (this.draggedTask.day === newDay && this.draggedTask.hour === newHour)) return; 
+                    await fetch(`/api/tasks/${this.draggedTask._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ day: newDay, hour: newHour }) }); 
+                    this.draggedTask = null; 
+                    this.fetchTasks(); 
+                },
+                
+                async autoGenerate() { 
+                    await fetch('/api/auto-generate', { method: 'POST' }); 
+                    this.fetchTasks(); 
+                },
+                
+                openSnoozeModal(task) { 
+                    this.taskToSnooze = task; 
+                    this.snoozeMinutes = 30; 
+                    this.snoozeModalOpen = true; 
+                },
+                
+                async confirmSnooze() {
+                    if (!this.taskToSnooze) return;
+                    await fetch(`/api/tasks/${this.taskToSnooze._id}/snooze`, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ minutes: parseInt(this.snoozeMinutes) }) 
+                    });
+                    this.snoozeModalOpen = false;
+                    this.fetchTasks();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

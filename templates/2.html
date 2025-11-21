@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planlama Uygulaması - Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            color: #2d3748;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            box-shadow: 4px 0 12px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            color: white;
+        }
+
+        .sidebar-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .sidebar-menu {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .menu-section {
+            margin-bottom: 28px;
+        }
+
+        .menu-section h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #a0aec0;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .menu-item {
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        .menu-item:hover {
+            background: #f7fafc;
+            color: #1e40af;
+        }
+
+        .menu-item.active {
+            background: #e0e7ff;
+            color: #1e40af;
+        }
+
+        .menu-item .icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 12px;
+        }
+
+        .stats-card h4 {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .stats-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e40af;
+        }
+
+        .action-buttons {
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            background: white;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .top-bar-left h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+
+        .top-bar-left p {
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .top-bar-right {
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f7fafc;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: #4a5568;
+        }
+
+        .icon-btn:hover {
+            background: #e0e7ff;
+            color: #1e40af;
+        }
+
+        .file-upload-wrapper {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        /* Calendar Area */
+        .calendar-wrapper {
+            flex: 1;
+            overflow: auto;
+            padding: 32px;
+            background: #f7fafc;
+        }
+
+        .calendar-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            color: white;
+            padding: 16px 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 13px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th:first-child {
+            border-top-left-radius: 16px;
+        }
+
+        th:last-child {
+            border-top-right-radius: 16px;
+        }
+
+        th small {
+            display: block;
+            margin-top: 4px;
+            opacity: 0.9;
+            font-weight: 400;
+            font-size: 11px;
+        }
+
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            vertical-align: top;
+            min-width: 140px;
+            min-height: 80px;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        td:hover {
+            background: #f7fafc;
+            cursor: pointer;
+        }
+
+        td:first-child {
+            background: #fafbfc;
+            font-weight: 600;
+            text-align: center;
+            color: #4a5568;
+            width: 80px;
+        }
+
+        .task-card {
+            padding: 10px 12px;
+            margin: 6px 0;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 13px;
+            position: relative;
+            cursor: grab;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .task-card:active {
+            cursor: grabbing;
+            opacity: 0.8;
+        }
+
+        .task-card .task-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .task-card .task-desc {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .task-card .task-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .task-card .task-category {
+            font-size: 10px;
+            padding: 2px 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+        }
+
+        .task-card button {
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .task-card button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .p-high {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+
+        .p-medium {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .p-low {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        }
+
+        /* Modal */
+        #popup {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #formBox {
+            background: white;
+            padding: 32px;
+            width: 480px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        #formBox h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #2d3748;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #1e40af;
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-save {
+            flex: 1;
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+        }
+
+        .btn-cancel {
+            flex: 1;
+            background: #f7fafc;
+            color: #4a5568;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover {
+            background: #edf2f7;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+            color: #cbd5e0;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>📅 Planlayıcı</h1>
+            <p id="currentDate">Haftalık Görünüm</p>
+        </div>
+
+        <div class="sidebar-menu">
+            <div class="menu-section">
+                <h3>Görünüm</h3>
+                <div class="menu-item active" onclick="showCalendarView()">
+                    <span class="icon">📆</span>
+                    Haftalık Takvim
+                </div>
+                <div class="menu-item" onclick="showStatsView()">
+                    <span class="icon">📊</span>
+                    İstatistikler
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3>Kategoriler</h3>
+                <div class="menu-item" onclick="filterByCategory('İş')">
+                    <span class="icon">💼</span>
+                    İş
+                </div>
+                <div class="menu-item" onclick="filterByCategory('Kişisel')">
+                    <span class="icon">👤</span>
+                    Kişisel
+                </div>
+                <div class="menu-item" onclick="filterByCategory('Genel')">
+                    <span class="icon">📝</span>
+                    Genel
+                </div>
+                <div class="menu-item" onclick="filterByCategory('all')" style="margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                    <span class="icon">🔄</span>
+                    Tümünü Göster
+                </div>
+            </div>
+
+            <div class="stats-card">
+                <h4>Bu Hafta</h4>
+                <div class="stats-number" id="taskCount">0</div>
+                <p style="font-size: 12px; color: #718096; margin-top: 4px;">Toplam Görev</p>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="openPopup('Monday', '09:00')">
+                ➕ Yeni Görev
+            </button>
+            <button class="btn btn-secondary" onclick="autoGenerate()">
+                ✨ Otomatik Oluştur
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <h2>Haftalık Planlama</h2>
+                <p id="weekRange">Hafta görünümü</p>
+            </div>
+            <div class="top-bar-right">
+                <select id="timeRangeSelector" onchange="changeTimeRange()" style="padding: 8px 12px; border-radius: 8px; border: 2px solid #e2e8f0; margin-right: 12px; font-size: 14px; font-weight: 500; cursor: pointer;">
+                    <option value="full">Tüm Gün (00:00 - 23:30)</option>
+                    <option value="work" selected>İş Saatleri (08:00 - 18:00)</option>
+                    <option value="morning">Sabah (06:00 - 12:00)</option>
+                    <option value="afternoon">Öğleden Sonra (12:00 - 18:00)</option>
+                    <option value="evening">Akşam (18:00 - 23:30)</option>
+                    <option value="night">Gece (00:00 - 06:00)</option>
+                </select>
+
+                <button class="icon-btn" onclick="window.location='/export_excel'" title="Excel'e Aktar">
+                    📥
+                </button>
+                
+                <div class="file-upload-wrapper">
+                    <button class="icon-btn" title="Excel Yükle">
+                        📤
+                    </button>
+                    <form id="uploadForm" action="/import_excel" method="POST" enctype="multipart/form-data" style="display: inline;">
+                        <input type="file" name="file" id="fileInput" accept=".xlsx,.xls" onchange="document.getElementById('uploadForm').submit()">
+                    </form>
+                </div>
+
+                <button class="icon-btn" onclick="load()" title="Yenile">
+                    🔄
+                </button>
+            </div>
+        </div>
+
+        <div class="calendar-wrapper" id="calendarView">
+            <div class="calendar-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Saat</th>
+                            {% for i in range(7) %}
+                                <th>
+                                    {{ days[i] }}
+                                    <small>{{ dates[i] }}</small>
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody id="calendar"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- İstatistikler Görünümü -->
+        <div class="calendar-wrapper" id="statsView" style="display: none;">
+            <div style="max-width: 1200px; margin: 0 auto;">
+                <h2 style="margin-bottom: 24px; color: #2d3748; font-size: 28px;">📊 İstatistikler</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 32px;">
+                    <!-- Toplam Görevler -->
+                    <div style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                        <div style="font-size: 14px; color: #718096; margin-bottom: 8px;">Toplam Görev</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #1e40af;" id="statTotal">0</div>
+                    </div>
+                    
+                    <!-- Tamamlanan -->
+                    <div style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                        <div style="font-size: 14px; color: #718096; margin-bottom: 8px;">Tamamlanan</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #10b981;" id="statCompleted">0</div>
+                    </div>
+                    
+                    <!-- Bekleyen -->
+                    <div style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                        <div style="font-size: 14px; color: #718096; margin-bottom: 8px;">Bekleyen</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #f59e0b;" id="statPending">0</div>
+                    </div>
+                    
+                    <!-- Yüksek Öncelikli -->
+                    <div style="background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                        <div style="font-size: 14px; color: #718096; margin-bottom: 8px;">Yüksek Öncelik</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #dc2626;" id="statHighPriority">0</div>
+                    </div>
+                </div>
+
+                <!-- Kategorilere Göre -->
+                <div style="background: white; padding: 32px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 20px; color: #2d3748;">Kategorilere Göre Görevler</h3>
+                    <div id="categoryStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;"></div>
+                </div>
+
+                <!-- Önceliklere Göre -->
+                <div style="background: white; padding: 32px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                    <h3 style="margin-bottom: 20px; color: #2d3748;">Önceliklere Göre Görevler</h3>
+                    <div id="priorityStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;"></div>
+                </div>
+
+                <button onclick="showCalendarView()" style="margin-top: 24px; padding: 12px 24px; background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                    ← Takvime Dön
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal -->
+<div id="popup">
+    <div id="formBox">
+        <h3>Yeni Görev Ekle</h3>
+        
+        <div class="form-group">
+            <label>Saat Seçimi</label>
+            <select id="taskHour" style="width: 100%;">
+                <!-- Saatler dinamik olarak yüklenecek -->
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Görev Başlığı</label>
+            <input type="text" id="taskTitle" placeholder="Başlığı girin...">
+        </div>
+
+        <div class="form-group">
+            <label>Açıklama</label>
+            <textarea id="taskDesc" placeholder="Detayları girin..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Öncelik</label>
+            <select id="taskPriority">
+                <option value="p-high">🔴 Yüksek Öncelik</option>
+                <option value="p-medium">🟡 Orta Öncelik</option>
+                <option value="p-low">🔵 Düşük Öncelik</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Kategori</label>
+            <select id="taskCategory">
+                <option>📝 Genel</option>
+                <option>💼 İş</option>
+                <option>👤 Kişisel</option>
+            </select>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn-save" onclick="saveTask()">Kaydet</button>
+            <button class="btn-cancel" onclick="closePopup()">İptal</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let activeDay = "";
+let activeHour = "";
+let dragData = {};
+let currentTimeRange = "work"; // Varsayılan: iş saatleri
+let allHours = []; // Tüm saatler
+let currentCategoryFilter = "all"; // Kategori filtresi
+let allTasksData = null; // Tüm görevler
+
+// Saat aralıklarını tanımla
+const timeRanges = {
+    full: { start: "00:00", end: "23:30" },
+    work: { start: "08:00", end: "18:00" },
+    morning: { start: "06:00", end: "12:00" },
+    afternoon: { start: "12:00", end: "18:00" },
+    evening: { start: "18:00", end: "23:30" },
+    night: { start: "00:00", end: "06:00" }
+};
+
+// Saat karşılaştırma fonksiyonu
+function timeToMinutes(time) {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+}
+
+// Seçili aralığa göre saatleri filtrele
+function getFilteredHours() {
+    const range = timeRanges[currentTimeRange];
+    const startMinutes = timeToMinutes(range.start);
+    const endMinutes = timeToMinutes(range.end);
+    
+    return allHours.filter(hour => {
+        const hourMinutes = timeToMinutes(hour);
+        
+        // Gece aralığı için özel kontrol (00:00 - 06:00)
+        if (currentTimeRange === "night") {
+            return hourMinutes >= startMinutes && hourMinutes <= endMinutes;
+        }
+        
+        return hourMinutes >= startMinutes && hourMinutes <= endMinutes;
+    });
+}
+
+// Saat aralığı değiştiğinde
+function changeTimeRange() {
+    currentTimeRange = document.getElementById("timeRangeSelector").value;
+    load();
+}
+
+// Kategoriye göre filtrele
+function filterByCategory(category) {
+    currentCategoryFilter = category;
+    
+    // Menü itemlarının active class'ını güncelle
+    document.querySelectorAll('.menu-section:nth-child(2) .menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    if (category !== 'all') {
+        event.target.closest('.menu-item').classList.add('active');
+    }
+    
+    load();
+}
+
+// Takvim görünümünü göster
+function showCalendarView() {
+    document.getElementById('calendarView').style.display = 'block';
+    document.getElementById('statsView').style.display = 'none';
+    
+    // Menü itemlarını güncelle
+    document.querySelectorAll('.menu-section:nth-child(1) .menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector('.menu-section:nth-child(1) .menu-item:nth-child(2)').classList.add('active');
+    
+    load();
+}
+
+// İstatistik görünümünü göster
+async function showStatsView() {
+    document.getElementById('calendarView').style.display = 'none';
+    document.getElementById('statsView').style.display = 'block';
+    
+    // Menü itemlarını güncelle
+    document.querySelectorAll('.menu-section:nth-child(1) .menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector('.menu-section:nth-child(1) .menu-item:nth-child(3)').classList.add('active');
+    
+    // İstatistikleri yükle
+    await loadStats();
+}
+
+// İstatistikleri yükle
+async function loadStats() {
+    try {
+        const res = await fetch("/stats");
+        const stats = await res.json();
+        
+        if (stats.success) {
+            document.getElementById('statTotal').textContent = stats.total;
+            document.getElementById('statCompleted').textContent = stats.completed;
+            document.getElementById('statPending').textContent = stats.pending;
+            
+            // Yüksek öncelikli görevler
+            document.getElementById('statHighPriority').textContent = stats.priorities['p-high'] || 0;
+            
+            // Kategori istatistikleri
+            const categoryStatsDiv = document.getElementById('categoryStats');
+            categoryStatsDiv.innerHTML = '';
+            
+            const categories = stats.categories || {};
+            Object.keys(categories).forEach(cat => {
+                const icon = cat === 'İş' ? '💼' : cat === 'Kişisel' ? '👤' : '📝';
+                categoryStatsDiv.innerHTML += `
+                    <div style="padding: 16px; background: #f7fafc; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">${icon}</div>
+                        <div style="font-size: 20px; font-weight: 600; color: #2d3748;">${categories[cat]}</div>
+                        <div style="font-size: 12px; color: #718096; margin-top: 4px;">${cat}</div>
+                    </div>
+                `;
+            });
+            
+            // Öncelik istatistikleri
+            const priorityStatsDiv = document.getElementById('priorityStats');
+            priorityStatsDiv.innerHTML = '';
+            
+            const priorities = stats.priorities || {};
+            const priorityLabels = {
+                'p-high': { label: 'Yüksek', color: '#dc2626', icon: '🔴' },
+                'p-medium': { label: 'Orta', color: '#f59e0b', icon: '🟡' },
+                'p-low': { label: 'Düşük', color: '#1e40af', icon: '🔵' }
+            };
+            
+            Object.keys(priorityLabels).forEach(pri => {
+                const data = priorityLabels[pri];
+                priorityStatsDiv.innerHTML += `
+                    <div style="padding: 16px; background: #f7fafc; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">${data.icon}</div>
+                        <div style="font-size: 20px; font-weight: 600; color: ${data.color};">${priorities[pri] || 0}</div>
+                        <div style="font-size: 12px; color: #718096; margin-top: 4px;">${data.label} Öncelik</div>
+                    </div>
+                `;
+            });
+        }
+    } catch (error) {
+        console.error('İstatistikler yüklenirken hata:', error);
+        alert('İstatistikler yüklenirken bir hata oluştu.');
+    }
+}
+
+// Tarih formatını güncelle
+function updateDateDisplay() {
+    const now = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('currentDate').textContent = now.toLocaleDateString('tr-TR', options);
+}
+
+async function load() {
+    const res = await fetch("/plan");
+    const plan = await res.json();
+    allTasksData = plan;
+
+    const table = document.getElementById("calendar");
+    table.innerHTML = "";
+
+    // İlk yüklemede tüm saatleri al
+    if (allHours.length === 0) {
+        allHours = Object.keys(plan["Monday"]);
+    }
+
+    const hours = getFilteredHours();
+    let totalTasks = 0;
+
+    hours.forEach(hour => {
+        let row = `<tr><td>${hour}</td>`;
+
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
+            let tasks = plan[day][hour] || [];
+            
+            // Kategori filtrelemesi
+            if (currentCategoryFilter !== 'all') {
+                tasks = tasks.filter(t => t.category === currentCategoryFilter);
+            }
+            
+            totalTasks += tasks.length;
+
+            let html = tasks.length > 0 ? tasks.map(t => {
+                const categoryIcon = t.category === 'İş' ? '💼' : t.category === 'Kişisel' ? '👤' : '📝';
+                return `
+                    <div class="task-card ${t.priority}"
+                        draggable="true"
+                        ondragstart="dragTask(event, '${day}', '${hour}', '${t.title}')">
+                        <div class="task-title">
+                            ${t.title}
+                        </div>
+                        <div class="task-desc">${t.desc}</div>
+                        <div class="task-footer">
+                            <span class="task-category">${categoryIcon} ${t.category}</span>
+                            <button onclick="event.stopPropagation(); deleteTask('${day}','${hour}','${t.title}')">Sil</button>
+                        </div>
+                    </div>
+                `;
+            }).join("") : (currentCategoryFilter === 'all' ? '<div class="empty-cell">+</div>' : '');
+
+            row += `
+                <td onclick="openPopup('${day}','${hour}')"
+                    ondragover="event.preventDefault()"
+                    ondrop="dropTask(event, '${day}', '${hour}')">
+                    ${html}
+                </td>`;
+        });
+
+        row += "</tr>";
+        table.innerHTML += row;
+    });
+
+    document.getElementById('taskCount').textContent = totalTasks;
+}
+
+function openPopup(day, hour) {
+    activeDay = day;
+    activeHour = hour;
+    
+    // Saat dropdown'ını doldur
+    const hourSelect = document.getElementById("taskHour");
+    hourSelect.innerHTML = "";
+    
+    allHours.forEach(h => {
+        const option = document.createElement("option");
+        option.value = h;
+        option.textContent = h;
+        if (h === hour) {
+            option.selected = true;
+        }
+        hourSelect.appendChild(option);
+    });
+    
+    document.getElementById("popup").style.display = "flex";
+    document.getElementById("taskTitle").focus();
+}
+
+function closePopup() {
+    document.getElementById("popup").style.display = "none";
+    document.getElementById("taskTitle").value = "";
+    document.getElementById("taskDesc").value = "";
+}
+
+async function saveTask() {
+    let title = document.getElementById("taskTitle").value;
+    let desc = document.getElementById("taskDesc").value;
+    let priority = document.getElementById("taskPriority").value;
+    let category = document.getElementById("taskCategory").value;
+    let selectedHour = document.getElementById("taskHour").value;
+
+    if (title.trim() === "") {
+        alert("Başlık boş olamaz!");
+        return;
+    }
+
+    await fetch("/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            day: activeDay,
+            hour: selectedHour, // Seçilen saati kullan
+            title, desc, priority, category
+        })
+    });
+
+    closePopup();
+    load();
+}
+
+async function deleteTask(day, hour, title) {
+    if (!confirm('Bu görevi silmek istediğinizden emin misiniz?')) return;
+
+    await fetch("/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day, hour, title })
+    });
+    load();
+}
+
+function dragTask(event, day, hour, title) {
+    dragData = { old_day: day, old_hour: hour, title };
+    event.target.style.opacity = "0.5";
+}
+
+async function dropTask(event, newDay, newHour) {
+    event.preventDefault();
+    if (!dragData.title) return;
+
+    await fetch("/move_task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            old_day: dragData.old_day,
+            old_hour: dragData.old_hour,
+            new_day: newDay,
+            new_hour: newHour,
+            title: dragData.title
+        })
+    });
+
+    dragData = {};
+    load();
+}
+
+async function autoGenerate() {
+    if (!confirm('Otomatik görevler oluşturulsun mu?')) return;
+    
+    await fetch("/auto_generate", { method: "POST" });
+    alert("Otomatik görevler başarıyla oluşturuldu! ✨");
+    load();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closePopup();
+    if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault();
+        openPopup('Monday', '09:00');
+    }
+});
+
+// Initialize
+updateDateDisplay();
+load();
+</script>
+
+</body>
+</html>

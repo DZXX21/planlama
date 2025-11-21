@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="tr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kayıt Ol - Nexus Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { primary: { 500: '#3b82f6', 600: '#2563eb' } } }
+            }
+        }
+    </script>
+</head>
+<body class="h-full bg-slate-50 dark:bg-[#0B0F19] flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-white dark:bg-[#111827] rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-8">
+        
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Yeni Hesap</h1>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-2">Nexus Planner'a katılın</p>
+        </div>
+
+        {% if error %}
+        <div class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-semibold rounded-xl border border-red-100 dark:border-red-800 flex items-center gap-2">
+            <i class="ph-bold ph-warning-circle text-lg"></i>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="/register" method="POST" class="space-y-5">
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Kullanıcı Adı Seçin</label>
+                <div class="relative">
+                    <i class="ph-bold ph-user-plus absolute left-4 top-3.5 text-slate-400"></i>
+                    <input type="text" name="username" required class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white" placeholder="kullaniciadi">
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Şifre Belirleyin</label>
+                <div class="relative">
+                    <i class="ph-bold ph-lock-key absolute left-4 top-3.5 text-slate-400"></i>
+                    <input type="password" name="password" required class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white" placeholder="••••••••">
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-slate-900 dark:bg-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all active:scale-[0.98]">
+                Kayıt Ol ve Başla
+            </button>
+        </form>
+
+        <p class="text-center mt-8 text-sm text-slate-500">
+            Zaten hesabınız var mı? 
+            <a href="/login" class="text-primary-600 font-bold hover:underline">Giriş Yap</a>
+        </p>
+    </div>
+
+</body>
+</html>
